@@ -1,2 +1,2 @@
 # taskmanager
-For work
+Программа для работы
