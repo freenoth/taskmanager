@@ -9,7 +9,10 @@
         - создание структуры папок по датам и задачам
         - создание стандартных файлов для работы с задачей
 
-        - (!на будущее!) реструктуризация каталога и ведение архива: в проекте должны быть только 7-10 дней, всё остальное переносится в архив + отдельно архивируются sql-скрипты
+        - (!на будущее!) реструктуризация каталога и ведение архива: 
+            в проекте должны быть только 7-10 дней, 
+            всё остальное переносится в архив 
+            + отдельно архивируются sql-скрипты
 
     структура каталогов
     ~/year(yyyy)/month(mm)/day(dd)/task(XX-NNNNNN)/<files>
@@ -43,7 +46,7 @@
         - текстовое поле для задания имени задачи
 """
 
-# version   : 0.1.0
+# version   : 0.1.2a
 # py_ver    : 3.4.3
 # other_ver : -
 
@@ -62,8 +65,14 @@
 
 # history
 # 0.0.0 - 10.06.2015 создан файл и описана основная логика программы
-# 0.0.1 - 10.06.2015 описана основная логика, уже можно создавать папки через консольку
-# 0.1.0 - 11.06.2015 реализация программы через tkinter-интерфейс, создаёт структуру и задачи, отображает сообщения
+# 0.0.1 - 10.06.2015 описана основная логика, уже можно создавать папки через
+#                    консольку
+# 0.1.0 - 11.06.2015 реализация программы через tkinter-интерфейс, создаёт
+#                    структуру и задачи, отображает сообщения
+# 0.1.1 - 11.06.2015 немного изменён стиль, добавлены события на поле ввода
+#                    (очистка сообщения по фокусу и реакция на "Enter"),
+#                    после создания файлов поле ввода очищается
+# 0.1.2a- 11.06.2015 добавил меню
 
 #imports
 import sys
@@ -75,8 +84,48 @@ try:
 except:
     pass
 
-APP_TITLE = 'Work Manager 0.1.0'
+VERSION = '0.1.2a'
 
+PATH_FORMAT = '/%Y/%m/%d'
+
+APP_TITLE = 'Work Manager' + ' ' + VERSION
+
+COLOR_MAIN = 'ghost white'
+COLOR_BUTTON = 'snow3'
+
+
+class AppMenu(tk.Menu):
+    """ Меню для приложения """
+
+    def __init__(self, master=None):
+        super(AppMenu, self).__init__(master)
+
+        self['tearoff'] = False
+        self['relief'] = 'flat'
+        self.build_menu()
+
+    def build_menu(self):
+        menu_settings = tk.Menu(self, tearoff=False)
+        menu_settings['background'] = COLOR_MAIN
+        menu_settings.add_command(label='Настройки', command=self.__settings)
+        self.add_cascade(label='Параметры', menu=menu_settings)
+
+        menu_about = tk.Menu(self, tearoff=False)
+        menu_about['background'] = COLOR_MAIN
+        menu_about.add_command(label='Автор', command=self.__about_author)
+        menu_about.add_command(label='Версия', command=self.__about_version)
+        self.add_cascade(label='О программе', menu=menu_about)
+
+    def __settings(self):
+        pass
+
+    def __about_author(self):
+        pass
+
+    def __about_version(self):
+        ver_info = tk.Toplevel(self.winfo_toplevel())
+        ver_info.grab_set()
+        ver_info.focus_set()
 
 class Application(tk.Frame):
     """ Главное окно программы """
@@ -84,6 +133,8 @@ class Application(tk.Frame):
     def __init__(self, master=None):
         super(Application, self).__init__(master)
         self.grid(sticky='nsew')
+
+        self['bg'] = COLOR_MAIN
 
         self.work_dir = None
         self.task_name = None
@@ -94,50 +145,69 @@ class Application(tk.Frame):
         # создание элементов окна
         l = tk.Label(self)
         l['text'] = 'Сегодня:'
+        l['bg'] = COLOR_MAIN
         l.grid(column=0, row=0, padx=3, pady=3)
 
         l = tk.Label(self)
         l['text'] = 'Задача:'
+        l['bg'] = COLOR_MAIN
         l.grid(column=0, row=1, padx=3, pady=3)
 
         e = tk.Entry(self)
         e.insert(0, time.strftime('%d.%m.%Y'))
+        e['relief'] = 'groove'
+        e['bd'] = 1
         e['state'] = 'readonly'
         e['width'] = 15
-        e.grid(column=1, row=0, padx=3, pady=3)
+        e['highlightbackground'] = 'green'
+        e.grid(column=1, row=0, padx=3, pady=3, sticky='nsew')
 
         self.task_name = tk.StringVar()
         e = tk.Entry(self, textvariable=self.task_name)
+        e['relief'] = 'groove'
+        e['bd'] = 1
         e['width'] = 15
-        e.grid(column=1, row=1, padx=3, pady=3)
-        e.bind('<Return>', self.make_task_dir)
-
+        e['bg'] = COLOR_MAIN
+        e.grid(column=1, row=1, padx=3, pady=3, sticky='nsew')
+        e.bind('<Return>', self.__make_task)
+        e.bind('<FocusIn>', self.__clear_message)
+        e.bind('<FocusOut>', self.__clear_message)
 
         b = tk.Button(self)
         b['text'] = 'Создать папку'
         b['command'] = self.make_today_dir
+        b['relief'] = 'groove'
+        b['bd'] = 2
         b['width'] = 15
         b['height'] = 1
+        b['bg'] = COLOR_BUTTON
         b.grid(column=2, row=0, padx=3, pady=3)
 
         b = tk.Button(self)
         b['text'] = 'Создать задачу'
         b['command'] = self.make_task_dir
+        b['relief'] = 'groove'
+        b['bd'] = 2
         b['width'] = 15
         b['height'] = 1
+        b['bg'] = COLOR_BUTTON
         b.grid(column=2, row=1, padx=3, pady=3)
 
         self.msg = l = tk.Label(self)
         l['text'] = ''
+        l['bg'] = COLOR_MAIN
         l.grid(column=0, row=2, columnspan=3, sticky='nsew')
 
         self.stat = l = tk.Label(self)
         l['text'] = '>'
         l['relief'] = 'groove'
+        l['bd'] = 1
         l['anchor'] = 'w'
         l['foreground'] = 'gray30'
+        l['bg'] = COLOR_MAIN
         l.grid(column=0, row=3, columnspan=3, sticky='nsew')
 
+    #__информирование пользователя
     def set_message(self, text='', is_err=False):
         self.msg['foreground'] = 'red' if is_err else 'dark green'
         self.msg['text'] = text
@@ -145,9 +215,17 @@ class Application(tk.Frame):
     def set_status(self, text=''):
         self.stat['text'] = text
 
+    #__events
+    def __clear_message(self, arg=None):
+        self.set_message()
+
+    def __make_task(self, arg=None):
+        self.make_task_dir()
+
+    #__логика программы
     def make_today_dir(self):
         """ Создаёт папки для текущего дня """
-        today_dir = Path('work' + time.strftime('/%Y/%m/%d'))
+        today_dir = Path('work' + time.strftime(PATH_FORMAT))
 
         if today_dir.exists():
             self.set_message('уже существует', False)
@@ -158,7 +236,7 @@ class Application(tk.Frame):
         self.set_status('~/' + today_dir.as_posix() + '/>')
         self.work_dir = today_dir
 
-    def make_task_dir(self, arg=None):
+    def make_task_dir(self):
         """ Создаёт папку и начальные файлы для задачи """
         task_name = self.task_name.get()
         
@@ -175,7 +253,9 @@ class Application(tk.Frame):
                 task_dir.mkdir()
                 task_file = task_dir / (task_name + '.sql')
                 task_file.touch()
-                self.set_message('файлы для задачи %s созданы' % task_name, False)
+                self.set_message('файлы для задачи %s созданы' % task_name,
+                                                                        False)
+                self.task_name.set('')
 
 
 def main():
@@ -183,7 +263,8 @@ def main():
     root.title(APP_TITLE)
     root.resizable(width=False, height=False)
 
-    app = Application(master=root)
+    root['menu'] = AppMenu(master=root)
+    Application(master=root)
     root.mainloop()
 
 
