@@ -124,16 +124,17 @@ class AppMenu(Menu):
         settings_win.focus_set()
         settings_win.resizable(width=False, height=False)
 
-        AppSettings(settings_win)
+        aps = AppSettings(settings_win)
 
         settings_win.wait_window()
 
-        load_settings()
-        for ch in self.master.children:
-            cls = self.master.children[ch].__class__
-            if cls == Application:
-                self.master.children[ch].destroy()
-                cls(self.master)
+        if aps.is_save:
+            load_settings()
+            for ch in self.master.children:
+                cls = self.master.children[ch].__class__
+                if cls == Application:
+                    self.master.children[ch].destroy()
+                    cls(self.master)
 
     # def _about_author(self):
     #     pass
@@ -155,6 +156,7 @@ class AppSettings(Frame):
 
         self.settings = {}
 
+        self.is_save = False
         self.create_widgets()
 
     def create_widgets(self):
@@ -243,6 +245,7 @@ class AppSettings(Frame):
                 self.set_message('Ошибка записи конфигурации!', True)
                 raise e
             else:
+                self.is_save = True
                 self.exit()
             finally:
                 sett_file.close()
