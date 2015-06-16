@@ -46,7 +46,7 @@
         - текстовое поле для задания имени задачи
 """
 
-# version   : 0.2.0
+# version   : 0.2.1
 # py_ver    : 3.4.3
 # other_ver : -
 
@@ -74,12 +74,13 @@
 #                    после создания файлов поле ввода очищается
 # 0.1.2a- 11.06.2015 добавил меню
 # 0.2.0 - 16.06.2015 реализованы настройки через файл .conf в формате JSON
+# 0.2.1 - 16.06.2015 изменены импорты, добален файл setup для cx_Freezy
+
 
 #imports
-import sys
-import tkinter as tk
-import time
-import json
+from tkinter import Tk, Toplevel, Menu, Frame, Label, Entry, Button, StringVar
+from time import strftime
+from json import dump as json_dump, load as json_load
 
 try:
     from pathlib import Path # work only with python 3.4.3!!!
@@ -87,14 +88,14 @@ except:
     pass
 
 
-VERSION = '0.2.0'
+VERSION = '0.2.1'
 APP_TITLE = 'Work Manager' + ' ' + VERSION
 
-SETTINGS_FILE = 'wm_win.conf'
+SETTINGS_FILE = 'workmanager.conf'
 SETTINGS = {}
 
 
-class AppMenu(tk.Menu):
+class AppMenu(Menu):
     """ Меню для приложения """
 
     def __init__(self, master=None):
@@ -105,19 +106,19 @@ class AppMenu(tk.Menu):
         self.build_menu()
 
     def build_menu(self):
-        menu_settings = tk.Menu(self, tearoff=False)
+        menu_settings = Menu(self, tearoff=False)
         menu_settings['background'] = SETTINGS['color_main']
         menu_settings.add_command(label='Настройки', command=self._settings)
         self.add_cascade(label='Параметры', menu=menu_settings)
 
-        # menu_about = tk.Menu(self, tearoff=False)
+        # menu_about = Menu(self, tearoff=False)
         # menu_about['background'] = SETTINGS['color_main']
         # menu_about.add_command(label='Автор', command=self._about_author)
         # menu_about.add_command(label='Версия', command=self._about_version)
         # self.add_cascade(label='О программе', menu=menu_about)
 
     def _settings(self):
-        settings_win = tk.Toplevel(self.winfo_toplevel())
+        settings_win = Toplevel(self.winfo_toplevel())
         settings_win.grab_set()
         settings_win.focus_set()
         settings_win.resizable(width=False, height=False)
@@ -137,12 +138,12 @@ class AppMenu(tk.Menu):
     #     pass
 
     # def _about_version(self):
-    #     ver_info = tk.Toplevel(self.winfo_toplevel())
+    #     ver_info = Toplevel(self.winfo_toplevel())
     #     ver_info.grab_set()
     #     ver_info.focus_set()
 
 
-class AppSettings(tk.Frame):
+class AppSettings(Frame):
     """ Окно настроек программы """
 
     def __init__(self, master=None):
@@ -158,12 +159,12 @@ class AppSettings(tk.Frame):
     def create_widgets(self):
         elem_count = 0
         for sett in SETTINGS:
-            l = tk.Label(self)
+            l = Label(self)
             l['text'] = sett
             l['bg'] = SETTINGS['color_main']
             l.grid(column=0, row=elem_count, padx=3, pady=3)
 
-            e = tk.Entry(self)
+            e = Entry(self)
             e.insert(0, SETTINGS[sett])
             e['relief'] = 'groove'
             e['bd'] = 1
@@ -175,7 +176,7 @@ class AppSettings(tk.Frame):
 
             elem_count += 1
 
-        self.msg = l = tk.Label(self)
+        self.msg = l = Label(self)
         l['text'] = ''
         l['bg'] = SETTINGS['color_main']
         l['height'] = 2
@@ -183,7 +184,7 @@ class AppSettings(tk.Frame):
 
         elem_count += 1
 
-        b = tk.Button(self)
+        b = Button(self)
         b['text'] = 'Сохранить'
         b['command'] = self.save
         b['relief'] = 'groove'
@@ -193,7 +194,7 @@ class AppSettings(tk.Frame):
         b['bg'] = SETTINGS['color_button']
         b.grid(column=0, row=elem_count, padx=3, pady=3)
 
-        b = tk.Button(self)
+        b = Button(self)
         b['text'] = 'Отмена'
         b['command'] = self.exit
         b['relief'] = 'groove'
@@ -227,7 +228,7 @@ class AppSettings(tk.Frame):
         if new_sett:
             sett_file = open(SETTINGS_FILE, mode='w')
             try:
-                json.dump(new_sett, sett_file, indent=4, sort_keys=True)
+                json_dump(new_sett, sett_file, indent=4, sort_keys=True)
             except Exception as e:
                 sett_file.write(old_sett)
                 self.set_message('Ошибка записи конфигурации!', True)
@@ -241,7 +242,7 @@ class AppSettings(tk.Frame):
         self.master.destroy()
 
 
-class Application(tk.Frame):
+class Application(Frame):
     """ Главное окно программы """
 
     def __init__(self, master=None):
@@ -257,26 +258,26 @@ class Application(tk.Frame):
 
     def create_widgets(self):
         # создание элементов окна
-        l = tk.Label(self)
+        l = Label(self)
         l['text'] = 'Сегодня:'
         l['bg'] = SETTINGS['color_main']
         l.grid(column=0, row=0, padx=3, pady=3)
 
-        l = tk.Label(self)
+        l = Label(self)
         l['text'] = 'Задача:'
         l['bg'] = SETTINGS['color_main']
         l.grid(column=0, row=1, padx=3, pady=3)
 
-        e = tk.Entry(self)
-        e.insert(0, time.strftime('%d.%m.%Y'))
+        e = Entry(self)
+        e.insert(0, strftime('%d.%m.%Y'))
         e['relief'] = 'groove'
         e['bd'] = 1
         e['state'] = 'readonly'
         e['width'] = 15
         e.grid(column=1, row=0, padx=3, pady=3, sticky='nsew')
 
-        self.task_name = tk.StringVar()
-        e = tk.Entry(self, textvariable=self.task_name)
+        self.task_name = StringVar()
+        e = Entry(self, textvariable=self.task_name)
         e['relief'] = 'groove'
         e['bd'] = 1
         e['width'] = 15
@@ -286,7 +287,7 @@ class Application(tk.Frame):
         e.bind('<FocusIn>', self.__clear_message)
         e.bind('<FocusOut>', self.__clear_message)
 
-        b = tk.Button(self)
+        b = Button(self)
         b['text'] = 'Создать папку'
         b['command'] = self.make_today_dir
         b['relief'] = 'groove'
@@ -296,7 +297,7 @@ class Application(tk.Frame):
         b['bg'] = SETTINGS['color_button']
         b.grid(column=2, row=0, padx=3, pady=3)
 
-        b = tk.Button(self)
+        b = Button(self)
         b['text'] = 'Создать задачу'
         b['command'] = self.make_task_dir
         b['relief'] = 'groove'
@@ -306,12 +307,12 @@ class Application(tk.Frame):
         b['bg'] = SETTINGS['color_button']
         b.grid(column=2, row=1, padx=3, pady=3)
 
-        self.msg = l = tk.Label(self)
+        self.msg = l = Label(self)
         l['text'] = ''
         l['bg'] = SETTINGS['color_main']
         l.grid(column=0, row=2, columnspan=3, sticky='nsew')
 
-        self.stat = l = tk.Label(self)
+        self.stat = l = Label(self)
         l['text'] = '>'
         l['relief'] = 'groove'
         l['bd'] = 1
@@ -340,7 +341,7 @@ class Application(tk.Frame):
     def make_today_dir(self):
         """ Создаёт папки для текущего дня """
         today_dir = Path(SETTINGS['work_dir'] +
-                         time.strftime(SETTINGS['path_format']))
+                         strftime(SETTINGS['path_format']))
 
         if today_dir.exists():
             self.set_message('уже существует', False)
@@ -379,17 +380,17 @@ def load_settings():
     try:
         sett_file = open(SETTINGS_FILE, mode='r')
         global SETTINGS
-        SETTINGS = json.load(sett_file)
+        SETTINGS = json_load(sett_file)
         sett_file.close()
     except Exception as e:
-        root = tk.Tk()
+        root = Tk()
         root.title('ERROR!!!')
         root.resizable(width=False, height=False)
-        l = tk.Label(root)
+        l = Label(root)
         l['text'] = 'Ошибка чтения файла конфигурации'
         l['foreground'] = 'red'
         l.grid(sticky='nsew')
-        l = tk.Label(root)
+        l = Label(root)
         l['text'] = '"' + str(e) + '"'
         l['foreground'] = 'black'
         l.grid(sticky='nsew')
@@ -403,7 +404,7 @@ def load_settings():
 
 def main():
     if load_settings():
-        root = tk.Tk()
+        root = Tk()
         root.title(APP_TITLE)
         root.resizable(width=False, height=False)
 
@@ -416,18 +417,18 @@ if __name__ == '__main__':
     try:
         Path()
     except Exception as e:
-        root = tk.Tk()
+        root = Tk()
         root.title('ERROR!!!')
         root.resizable(width=False, height=False)
-        l = tk.Label(root)
+        l = Label(root)
         l['text'] = 'Необходим Python 3.4.3 или новее!!!'
         l['foreground'] = 'red'
         l.grid(sticky='nsew')
-        l = tk.Label(root)
+        l = Label(root)
         l['text'] = 'Нет необходимого модуля pathlib'
         l['foreground'] = 'red'
         l.grid(sticky='nsew')
-        l = tk.Label(root)
+        l = Label(root)
         l['text'] = '"' + str(e) + '"'
         l['foreground'] = 'black'
         l.grid(sticky='nsew')
