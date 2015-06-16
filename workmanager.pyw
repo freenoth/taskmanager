@@ -181,7 +181,7 @@ class AppSettings(Frame):
             e['bg'] = SETTINGS['color_main']
             e.grid(column=1, row=elem_count, padx=3, pady=3, sticky='nsew')
 
-            self.settings[sett] = e
+            self.settings[sett[0]] = e
 
             elem_count += 1
 
