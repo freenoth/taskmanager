@@ -46,7 +46,7 @@
         - текстовое поле для задания имени задачи
 """
 
-# version   : 0.1.2a
+# version   : 0.2.0
 # py_ver    : 3.4.3
 # other_ver : -
 
@@ -73,25 +73,25 @@
 #                    (очистка сообщения по фокусу и реакция на "Enter"),
 #                    после создания файлов поле ввода очищается
 # 0.1.2a- 11.06.2015 добавил меню
+# 0.2.0 - 16.06.2015 реализованы настройки через файл .conf в формате JSON
 
 #imports
 import sys
 import tkinter as tk
 import time
+import json
 
 try:
     from pathlib import Path # work only with python 3.4.3!!!
 except:
     pass
 
-VERSION = '0.1.2a'
 
-PATH_FORMAT = '/%Y/%m/%d'
-
+VERSION = '0.2.0'
 APP_TITLE = 'Work Manager' + ' ' + VERSION
 
-COLOR_MAIN = 'ghost white'
-COLOR_BUTTON = 'snow3'
+SETTINGS_FILE = 'wm_win.conf'
+SETTINGS = {}
 
 
 class AppMenu(tk.Menu):
@@ -106,26 +106,140 @@ class AppMenu(tk.Menu):
 
     def build_menu(self):
         menu_settings = tk.Menu(self, tearoff=False)
-        menu_settings['background'] = COLOR_MAIN
-        menu_settings.add_command(label='Настройки', command=self.__settings)
+        menu_settings['background'] = SETTINGS['color_main']
+        menu_settings.add_command(label='Настройки', command=self._settings)
         self.add_cascade(label='Параметры', menu=menu_settings)
 
-        menu_about = tk.Menu(self, tearoff=False)
-        menu_about['background'] = COLOR_MAIN
-        menu_about.add_command(label='Автор', command=self.__about_author)
-        menu_about.add_command(label='Версия', command=self.__about_version)
-        self.add_cascade(label='О программе', menu=menu_about)
+        # menu_about = tk.Menu(self, tearoff=False)
+        # menu_about['background'] = SETTINGS['color_main']
+        # menu_about.add_command(label='Автор', command=self._about_author)
+        # menu_about.add_command(label='Версия', command=self._about_version)
+        # self.add_cascade(label='О программе', menu=menu_about)
 
-    def __settings(self):
-        pass
+    def _settings(self):
+        settings_win = tk.Toplevel(self.winfo_toplevel())
+        settings_win.grab_set()
+        settings_win.focus_set()
+        settings_win.resizable(width=False, height=False)
 
-    def __about_author(self):
-        pass
+        AppSettings(settings_win)
 
-    def __about_version(self):
-        ver_info = tk.Toplevel(self.winfo_toplevel())
-        ver_info.grab_set()
-        ver_info.focus_set()
+        settings_win.wait_window()
+
+        load_settings()
+        for ch in self.master.children:
+            cls = self.master.children[ch].__class__
+            if cls == Application:
+                self.master.children[ch].destroy()
+                cls(self.master)
+
+    # def _about_author(self):
+    #     pass
+
+    # def _about_version(self):
+    #     ver_info = tk.Toplevel(self.winfo_toplevel())
+    #     ver_info.grab_set()
+    #     ver_info.focus_set()
+
+
+class AppSettings(tk.Frame):
+    """ Окно настроек программы """
+
+    def __init__(self, master=None):
+        super(AppSettings, self).__init__(master)
+
+        self.grid(sticky='nsew')
+        self['bg'] = SETTINGS['color_main']
+
+        self.settings = {}
+
+        self.create_widgets()
+
+    def create_widgets(self):
+        elem_count = 0
+        for sett in SETTINGS:
+            l = tk.Label(self)
+            l['text'] = sett
+            l['bg'] = SETTINGS['color_main']
+            l.grid(column=0, row=elem_count, padx=3, pady=3)
+
+            e = tk.Entry(self)
+            e.insert(0, SETTINGS[sett])
+            e['relief'] = 'groove'
+            e['bd'] = 1
+            e['width'] = 15
+            e['bg'] = SETTINGS['color_main']
+            e.grid(column=1, row=elem_count, padx=3, pady=3, sticky='nsew')
+
+            self.settings[sett] = e
+
+            elem_count += 1
+
+        self.msg = l = tk.Label(self)
+        l['text'] = ''
+        l['bg'] = SETTINGS['color_main']
+        l['height'] = 2
+        l.grid(column=0, row=elem_count, columnspan=2, sticky='nsew')
+
+        elem_count += 1
+
+        b = tk.Button(self)
+        b['text'] = 'Сохранить'
+        b['command'] = self.save
+        b['relief'] = 'groove'
+        b['bd'] = 2
+        b['width'] = 15
+        b['height'] = 1
+        b['bg'] = SETTINGS['color_button']
+        b.grid(column=0, row=elem_count, padx=3, pady=3)
+
+        b = tk.Button(self)
+        b['text'] = 'Отмена'
+        b['command'] = self.exit
+        b['relief'] = 'groove'
+        b['bd'] = 2
+        b['width'] = 15
+        b['height'] = 1
+        b['bg'] = SETTINGS['color_button']
+        b.grid(column=1, row=elem_count, padx=3, pady=3)
+
+    def set_message(self, text='', is_err=False):
+        self.msg['foreground'] = ( SETTINGS['color_msg_bad'] if is_err 
+                                      else SETTINGS['color_msg_good'] )
+        self.msg['text'] = text
+
+    def save(self):
+        self.set_message('', False)
+        old_sett = open(SETTINGS_FILE, mode='r').read()
+
+        new_sett = dict(SETTINGS)
+
+        try:
+            for s in self.settings:
+                if self.settings[s].get() == '':
+                    raise Exception()
+                else:
+                    new_sett[s] = self.settings[s].get()
+        except:
+            new_sett = None
+            self.set_message('Имеются пустые значения!', True)
+
+        if new_sett:
+            sett_file = open(SETTINGS_FILE, mode='w')
+            try:
+                json.dump(new_sett, sett_file, indent=4, sort_keys=True)
+            except Exception as e:
+                sett_file.write(old_sett)
+                self.set_message('Ошибка записи конфигурации!', True)
+                raise e
+            else:
+                self.exit()
+            finally:
+                sett_file.close()
+
+    def exit(self):
+        self.master.destroy()
+
 
 class Application(tk.Frame):
     """ Главное окно программы """
@@ -134,7 +248,7 @@ class Application(tk.Frame):
         super(Application, self).__init__(master)
         self.grid(sticky='nsew')
 
-        self['bg'] = COLOR_MAIN
+        self['bg'] = SETTINGS['color_main']
 
         self.work_dir = None
         self.task_name = None
@@ -145,12 +259,12 @@ class Application(tk.Frame):
         # создание элементов окна
         l = tk.Label(self)
         l['text'] = 'Сегодня:'
-        l['bg'] = COLOR_MAIN
+        l['bg'] = SETTINGS['color_main']
         l.grid(column=0, row=0, padx=3, pady=3)
 
         l = tk.Label(self)
         l['text'] = 'Задача:'
-        l['bg'] = COLOR_MAIN
+        l['bg'] = SETTINGS['color_main']
         l.grid(column=0, row=1, padx=3, pady=3)
 
         e = tk.Entry(self)
@@ -159,7 +273,6 @@ class Application(tk.Frame):
         e['bd'] = 1
         e['state'] = 'readonly'
         e['width'] = 15
-        e['highlightbackground'] = 'green'
         e.grid(column=1, row=0, padx=3, pady=3, sticky='nsew')
 
         self.task_name = tk.StringVar()
@@ -167,7 +280,7 @@ class Application(tk.Frame):
         e['relief'] = 'groove'
         e['bd'] = 1
         e['width'] = 15
-        e['bg'] = COLOR_MAIN
+        e['bg'] = SETTINGS['color_main']
         e.grid(column=1, row=1, padx=3, pady=3, sticky='nsew')
         e.bind('<Return>', self.__make_task)
         e.bind('<FocusIn>', self.__clear_message)
@@ -180,7 +293,7 @@ class Application(tk.Frame):
         b['bd'] = 2
         b['width'] = 15
         b['height'] = 1
-        b['bg'] = COLOR_BUTTON
+        b['bg'] = SETTINGS['color_button']
         b.grid(column=2, row=0, padx=3, pady=3)
 
         b = tk.Button(self)
@@ -190,12 +303,12 @@ class Application(tk.Frame):
         b['bd'] = 2
         b['width'] = 15
         b['height'] = 1
-        b['bg'] = COLOR_BUTTON
+        b['bg'] = SETTINGS['color_button']
         b.grid(column=2, row=1, padx=3, pady=3)
 
         self.msg = l = tk.Label(self)
         l['text'] = ''
-        l['bg'] = COLOR_MAIN
+        l['bg'] = SETTINGS['color_main']
         l.grid(column=0, row=2, columnspan=3, sticky='nsew')
 
         self.stat = l = tk.Label(self)
@@ -204,12 +317,13 @@ class Application(tk.Frame):
         l['bd'] = 1
         l['anchor'] = 'w'
         l['foreground'] = 'gray30'
-        l['bg'] = COLOR_MAIN
+        l['bg'] = SETTINGS['color_main']
         l.grid(column=0, row=3, columnspan=3, sticky='nsew')
 
     #__информирование пользователя
     def set_message(self, text='', is_err=False):
-        self.msg['foreground'] = 'red' if is_err else 'dark green'
+        self.msg['foreground'] = ( SETTINGS['color_msg_bad'] if is_err 
+                                      else SETTINGS['color_msg_good'] )
         self.msg['text'] = text
 
     def set_status(self, text=''):
@@ -225,7 +339,8 @@ class Application(tk.Frame):
     #__логика программы
     def make_today_dir(self):
         """ Создаёт папки для текущего дня """
-        today_dir = Path('work' + time.strftime(PATH_FORMAT))
+        today_dir = Path(SETTINGS['work_dir'] +
+                         time.strftime(SETTINGS['path_format']))
 
         if today_dir.exists():
             self.set_message('уже существует', False)
@@ -233,7 +348,7 @@ class Application(tk.Frame):
             today_dir.mkdir(parents = True)
             self.set_message('выполнено', False)
 
-        self.set_status('~/' + today_dir.as_posix() + '/>')
+        self.set_status('~' + today_dir.as_posix() + '/>')
         self.work_dir = today_dir
 
     def make_task_dir(self):
@@ -258,14 +373,43 @@ class Application(tk.Frame):
                 self.task_name.set('')
 
 
-def main():
-    root = tk.Tk()
-    root.title(APP_TITLE)
-    root.resizable(width=False, height=False)
+def load_settings():
+    sett_file = None
 
-    root['menu'] = AppMenu(master=root)
-    Application(master=root)
-    root.mainloop()
+    try:
+        sett_file = open(SETTINGS_FILE, mode='r')
+        global SETTINGS
+        SETTINGS = json.load(sett_file)
+        sett_file.close()
+    except Exception as e:
+        root = tk.Tk()
+        root.title('ERROR!!!')
+        root.resizable(width=False, height=False)
+        l = tk.Label(root)
+        l['text'] = 'Ошибка чтения файла конфигурации'
+        l['foreground'] = 'red'
+        l.grid(sticky='nsew')
+        l = tk.Label(root)
+        l['text'] = '"' + str(e) + '"'
+        l['foreground'] = 'black'
+        l.grid(sticky='nsew')
+        root.mainloop()
+        return False
+    finally:
+        sett_file.close()
+
+    return True
+
+
+def main():
+    if load_settings():
+        root = tk.Tk()
+        root.title(APP_TITLE)
+        root.resizable(width=False, height=False)
+
+        root['menu'] = AppMenu(master=root)
+        Application(master=root)
+        root.mainloop()
 
 
 if __name__ == '__main__':
