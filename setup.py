@@ -15,7 +15,7 @@ build_exe_options = { 'icon' : 'wm.ico',
 base = "Win32GUI"
 
 setup(  name = "WorkManager",
-        version = "0.2.1",
+        version = "0.2.1a",
         description = "Work manager lalala",
         options = {"build_exe": build_exe_options},
         executables = [Executable("workmanager.pyw", base=base)])

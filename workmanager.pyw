@@ -46,7 +46,7 @@
         - текстовое поле для задания имени задачи
 """
 
-# version   : 0.2.1
+# version   : 0.2.1a
 # py_ver    : 3.4.3
 # other_ver : -
 
@@ -75,6 +75,7 @@
 # 0.1.2a- 11.06.2015 добавил меню
 # 0.2.0 - 16.06.2015 реализованы настройки через файл .conf в формате JSON
 # 0.2.1 - 16.06.2015 изменены импорты, добален файл setup для cx_Freezy
+# 0.2.1a- 16.06.2015 мелкие исправления
 
 
 #imports
@@ -88,7 +89,7 @@ except:
     pass
 
 
-VERSION = '0.2.1'
+VERSION = '0.2.1a'
 APP_TITLE = 'Work Manager' + ' ' + VERSION
 
 SETTINGS_FILE = 'workmanager.conf'
@@ -157,15 +158,23 @@ class AppSettings(Frame):
         self.create_widgets()
 
     def create_widgets(self):
+        show_sett = [('work_dir',       'Рабочая папка'),
+                     ('path_format',    'Формат пути'),
+                     ('color_main',     'Цвет основного окна'),
+                     ('color_button',   'Цвет кнопок'),
+                     ('color_msg_bad',  'Цвет сообщений ошибок'),
+                     ('color_msg_good', 'Цвет оповещений')]
+
         elem_count = 0
-        for sett in SETTINGS:
+        for sett in show_sett:
             l = Label(self)
-            l['text'] = sett
+            l['text'] = sett[1]
             l['bg'] = SETTINGS['color_main']
-            l.grid(column=0, row=elem_count, padx=3, pady=3)
+            l['anchor'] = 'e'
+            l.grid(column=0, row=elem_count, padx=3, pady=3, sticky='nsew')
 
             e = Entry(self)
-            e.insert(0, SETTINGS[sett])
+            e.insert(0, SETTINGS[sett[0]])
             e['relief'] = 'groove'
             e['bd'] = 1
             e['width'] = 15
@@ -192,7 +201,7 @@ class AppSettings(Frame):
         b['width'] = 15
         b['height'] = 1
         b['bg'] = SETTINGS['color_button']
-        b.grid(column=0, row=elem_count, padx=3, pady=3)
+        b.grid(column=0, row=elem_count, padx=5, pady=5, sticky='w')
 
         b = Button(self)
         b['text'] = 'Отмена'
@@ -202,7 +211,7 @@ class AppSettings(Frame):
         b['width'] = 15
         b['height'] = 1
         b['bg'] = SETTINGS['color_button']
-        b.grid(column=1, row=elem_count, padx=3, pady=3)
+        b.grid(column=1, row=elem_count, padx=5, pady=5, sticky='e')
 
     def set_message(self, text='', is_err=False):
         self.msg['foreground'] = ( SETTINGS['color_msg_bad'] if is_err 
