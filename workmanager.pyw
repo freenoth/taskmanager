@@ -46,7 +46,7 @@
         - текстовое поле для задания имени задачи
 """
 
-# version   : 0.2.1a
+# version   : 0.3.0
 # py_ver    : 3.4.3
 # other_ver : -
 
@@ -76,11 +76,12 @@
 # 0.2.0 - 16.06.2015 реализованы настройки через файл .conf в формате JSON
 # 0.2.1 - 16.06.2015 изменены импорты, добален файл setup для cx_Freezy
 # 0.2.1a- 16.06.2015 мелкие исправления
+# 0.3.0 - 29.07.2015 автоматическое создание новых рабочих каталогов в 00:00:01 нового дня по ПН,ВТ,СР,ЧТ,ПТ
 
 
 #imports
 from tkinter import Tk, Toplevel, Menu, Frame, Label, Entry, Button, StringVar
-from time import strftime
+from time import strftime, localtime
 from json import dump as json_dump, load as json_load
 
 try:
@@ -89,7 +90,7 @@ except:
     pass
 
 
-VERSION = '0.2.1a'
+VERSION = '0.3.0'
 APP_TITLE = 'Work Manager' + ' ' + VERSION
 
 SETTINGS_FILE = 'workmanager.conf'
@@ -267,6 +268,7 @@ class Application(Frame):
         self.task_name = None
 
         self.create_widgets()
+        self._check_work_dir()
 
     def create_widgets(self):
         # создание элементов окна
@@ -280,8 +282,8 @@ class Application(Frame):
         l['bg'] = SETTINGS['color_main']
         l.grid(column=0, row=1, padx=3, pady=3)
 
-        e = Entry(self)
-        e.insert(0, strftime('%d.%m.%Y'))
+        self.work_dir_info = StringVar()
+        e = Entry(self, textvariable=self.work_dir_info)
         e['relief'] = 'groove'
         e['bd'] = 1
         e['state'] = 'readonly'
@@ -295,9 +297,9 @@ class Application(Frame):
         e['width'] = 15
         e['bg'] = SETTINGS['color_main']
         e.grid(column=1, row=1, padx=3, pady=3, sticky='nsew')
-        e.bind('<Return>', self.__make_task)
-        e.bind('<FocusIn>', self.__clear_message)
-        e.bind('<FocusOut>', self.__clear_message)
+        e.bind('<Return>', self._make_task)
+        e.bind('<FocusIn>', self._clear_message)
+        e.bind('<FocusOut>', self._clear_message)
 
         b = Button(self)
         b['text'] = 'Создать папку'
@@ -343,11 +345,25 @@ class Application(Frame):
         self.stat['text'] = text
 
     #__events
-    def __clear_message(self, arg=None):
+    def _clear_message(self, arg=None):
         self.set_message()
 
-    def __make_task(self, arg=None):
+    def _make_task(self, arg=None):
         self.make_task_dir()
+
+    # автоматическое создание рабочих папок 
+    def _check_work_dir(self):
+        now = localtime()
+
+        if not self.work_dir or self.work_dir and self.work_dir_info.get() != strftime('%d.%m.%Y'):
+            if now.tm_wday in range(0, 5):
+                self.make_today_dir()
+                self.set_message()
+        
+        self.work_dir_info.set(strftime('%d.%m.%Y'))
+
+        slp = ((24-now.tm_hour)*60 - now.tm_min)*60 - now.tm_sec + 1
+        self.after(slp*1000, self._check_work_dir)
 
     #__логика программы
     def make_today_dir(self):
